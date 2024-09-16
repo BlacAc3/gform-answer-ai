@@ -1,0 +1,12 @@
+django
+django-tailwind
+django-browser-reload
+dj-database-url
+psycopg2-binary
+django-environ
+whitenoise
+google-api-python-client
+beautifulsoup4
+openai
+google-generativeai
+django-htmx
