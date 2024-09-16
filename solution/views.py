@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.urls import reverse
+from django.http import HttpResponse, HttpResponseRedirect
 import requests
 from bs4 import BeautifulSoup as cooking
 from django.conf import settings
@@ -10,21 +11,35 @@ import google.generativeai as genai
 
 
 
-def index(request, **kwargs):
-    return render(request, "solution/index.html")
+def index(request, **kwargs:tuple):
+    # *args receives value as a tuple
+    boxes = None
+    try:
+        boxes = kwargs["qa_result"]
+    except Exception as e:
+        pass
+    return render(request, "solution/index.html", {
+        "boxes":boxes
+    })
 
 #########-- htmx --##########
 def htmx_test(request):
     print("htmx works!!")
-    return 
+    return
 
 ##########-- Rendering to index the AI output --##########
 def makesoup(request):
-    url = request.POST.get("url")
-    question_and_answer = get_questions_and_answer(url)
-    return render(request, "solution/index.html",{
-        "boxes":question_and_answer,
-    })
+    if request.method == "POST":
+        url = request.POST.get("url")
+        try:
+            question_and_answer = get_questions_and_answer(url)
+            # return HttpResponse(question_and_answer)
+            return index(request, qa_result = question_and_answer)
+        except Exception as e:
+            print(f"Error found while making soup: {e}")
+        return index(request)
+    else:
+        return HttpResponseRedirect(reverse("index"))
 
 ##########-- Getting the string only from the list --##########
 def improve_list(list :list)-> list:
@@ -41,6 +56,9 @@ def get_questions_and_answer(url :str) ->list:
     # url = "https://docs.google.com/forms/d/e/1FAIpQLSfIpvY6Cmzzkosn7am8x3_jRG7QKR0PsQjpUdeb7OeQxqlB-Q/viewform?usp=sf_link"
     response = requests.get(url)
     soup = cooking(response.content, "html.parser")
+    paragraphs = soup.find_all("p")
+    # extracted_data = "\n".join(p.get_text() for p in paragraphs)
+    # return extracted_data
     #Getting containers of question and it's options
     containers = soup.findAll(class_="geS5n")
     #Creating empty list of containers with questions and answers
@@ -53,6 +71,7 @@ def get_questions_and_answer(url :str) ->list:
         new_box.append(index)
         ###### Scraping question #####
         question = box.find(class_="M7eMe")
+        print(f"scraped questions: {question}")
         ###### Adding question to container 1 #########
         new_box.append(question.text)
         ###### Scraping answers #######
@@ -81,7 +100,7 @@ def askAI(text: str):
     genai.configure(api_key=GOOGLE_API_KEY)
     model = genai.GenerativeModel('gemini-pro')
     response = model.generate_content(text)
-    print(markdown_to_text(response.text))
+    # print(markdown_to_text(response.text))
     return markdown_to_text(response.text)
 
 
