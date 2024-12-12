@@ -1,0 +1,19 @@
+    {% if boxes %}
+    <ul class="flex flex-col gap-6 p-8 mt-4 self-start w-full">
+        <h1 class="font-bold mb-3 text-2xl">Results</h1>
+        {% for box in boxes %}
+        <li class="flex flex-row gap-2 sm:gap-4 text-white font-sans">
+            <h1 class="text-white rounded-md w-fit">{{box.0}}</h1>
+            <div class="flex flex-col w-full gap-2">
+                <div class="flex italic">
+                    <h2 class="font-bold mr-2">Q:</h2>
+                    <div>{{box.1}}</div>
+                </div>
+                <div class="flex gap-4 border border-white p-4 rounded-lg">
+                    <div>{{box.2}}</div>
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}

@@ -16,7 +16,7 @@ def index(request, **kwargs:tuple):
     boxes = None
     try:
         boxes = kwargs["qa_result"]
-    except Exception as e:
+    except:
         pass
     return render(request, "solution/index.html", {
         "boxes":boxes
@@ -24,8 +24,16 @@ def index(request, **kwargs:tuple):
 
 #########-- htmx --##########
 def htmx_test(request):
-    print("htmx works!!")
-    return
+    url = "https://docs.google.com/forms/d/e/1FAIpQLSfIpvY6Cmzzkosn7am8x3_jRG7QKR0PsQjpUdeb7OeQxqlB-Q/viewform?usp=sf_link"
+    try:
+        question_and_answer = get_questions_and_answer(url)
+        # return HttpResponse(question_and_answer)
+        return render(request, "solution/result.html",{
+            "boxes": question_and_answer,
+            })
+    except Exception as e:
+        print(f"Error found while making soup: {e}")
+        return index(request)
 
 ##########-- Rendering to index the AI output --##########
 def makesoup(request):
@@ -34,12 +42,13 @@ def makesoup(request):
         try:
             question_and_answer = get_questions_and_answer(url)
             # return HttpResponse(question_and_answer)
-            return index(request, qa_result = question_and_answer)
+            return render(request, "solution/result.html",{
+                "boxes": question_and_answer,
+                })
         except Exception as e:
             print(f"Error found while making soup: {e}")
-        return index(request)
-    else:
-        return HttpResponseRedirect(reverse("index"))
+        return render(request, "solution/result.html")
+    return HttpResponseRedirect(reverse("index"))
 
 ##########-- Getting the string only from the list --##########
 def improve_list(list :list)-> list:
