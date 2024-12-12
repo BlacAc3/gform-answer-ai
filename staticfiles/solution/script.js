@@ -13,12 +13,8 @@ function hideLoadingScreen() {
 }
 
 // Simulate an async operation
-startButton.addEventListener('click', () => {
+startButton.addEventListener('submit', () => {
     showLoadingScreen();
 
     // Simulate a delay (e.g., fetch data or process)
-    setTimeout(() => {
-        alert('Operation completed!');
-        hideLoadingScreen();
-    }, 3000); // 3 seconds delay
 });
