@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 import requests
+import asyncio
 from bs4 import BeautifulSoup as cooking
 from django.conf import settings
 
@@ -61,11 +62,10 @@ def improve_list(list :list)-> list:
 
 
 ##########-- Scraping the Web --##########
-def get_questions_and_answer(url :str) ->list:
+async def get_questions_and_answer(url :str) ->list:
     # url = "https://docs.google.com/forms/d/e/1FAIpQLSfIpvY6Cmzzkosn7am8x3_jRG7QKR0PsQjpUdeb7OeQxqlB-Q/viewform?usp=sf_link"
     response = requests.get(url)
     soup = cooking(response.content, "html.parser")
-    paragraphs = soup.find_all("p")
     # extracted_data = "\n".join(p.get_text() for p in paragraphs)
     # return extracted_data
     #Getting containers of question and it's options
@@ -73,11 +73,16 @@ def get_questions_and_answer(url :str) ->list:
     #Creating empty list of containers with questions and answers
     new_containers=[]
     index: int = 0
-    for box in containers:
+    asynchronous_jobs = [resolve_questions(box) for box in containers]
+    new_containers = await asyncio.gather(*asynchronous_jobs)
+
     ##### Scraping questions and answers from each individual container######
+    return new_containers
+
+
+
+async def resolve_questions(box):
         new_box =[]
-        index= index + 1
-        new_box.append(index)
         ###### Scraping question #####
         question = box.find(class_="M7eMe")
         print(f"scraped questions: {question}")
@@ -97,10 +102,12 @@ def get_questions_and_answer(url :str) ->list:
             ###### Adding AI answers to container ######
             new_box.append(clean_answers)
             ###### Appending container to list of containers ######
-            new_containers.append(new_box)
+
         except:
             new_box.append("Sorry, as an AI I cant answer this!!")
-    return new_containers
+        return new_box
+
+
 
 
 ######## Asking AI ########
