@@ -84,6 +84,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'onlinetestsolution.wsgi.application'
+ASGI_APPLICATION = 'onlinetestsolution.asgi.application'
 
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = [

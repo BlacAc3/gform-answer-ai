@@ -1,8 +1,11 @@
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import HttpResponse, HttpResponseRedirect
+from concurrent.futures import ThreadPoolExecutor
 import requests
+import threading
 import asyncio
+import time
 from bs4 import BeautifulSoup as cooking
 from django.conf import settings
 
@@ -27,7 +30,7 @@ def index(request, **kwargs:tuple):
 def htmx_test(request):
     url = "https://docs.google.com/forms/d/e/1FAIpQLSfIpvY6Cmzzkosn7am8x3_jRG7QKR0PsQjpUdeb7OeQxqlB-Q/viewform?usp=sf_link"
     try:
-        question_and_answer = get_questions_and_answer(url)
+        question_and_answer = asyncio.run(get_questions_and_answer(url))
         # return HttpResponse(question_and_answer)
         return render(request, "solution/result.html",{
             "boxes": question_and_answer,
@@ -41,7 +44,7 @@ def makesoup(request):
     if request.method == "POST":
         url = request.POST.get("url")
         try:
-            question_and_answer = get_questions_and_answer(url)
+            question_and_answer = asyncio.run(get_questions_and_answer(url))
             # return HttpResponse(question_and_answer)
             return render(request, "solution/result.html",{
                 "boxes": question_and_answer,
@@ -71,17 +74,27 @@ async def get_questions_and_answer(url :str) ->list:
     #Getting containers of question and it's options
     containers = soup.findAll(class_="geS5n")
     #Creating empty list of containers with questions and answers
-    new_containers=[]
-    index: int = 0
-    asynchronous_jobs = [resolve_questions(box) for box in containers]
-    new_containers = await asyncio.gather(*asynchronous_jobs)
+    new_containers=[None] *5
+    threads=[]
+
+    ## Timing asynchronous_jobs
+    start_time = time.perf_counter()
+    # asynchronous_jobs = [resolve_questions(box) for box in containers]
+    for index, box in enumerate(containers):
+        thread = threading.Thread(target=resolve_questions, args=(box, new_containers, index))
+        threads.append(thread)
+        thread.start()
+    for thread in threads:
+        thread.join()
+    end_time = time.perf_counter()
+    print(f"Execution time: {end_time - start_time:.6f} seconds")
 
     ##### Scraping questions and answers from each individual container######
     return new_containers
 
 
 
-async def resolve_questions(box):
+def resolve_questions(box, new_containers, index):
         new_box =[]
         ###### Scraping question #####
         question = box.find(class_="M7eMe")
@@ -105,7 +118,12 @@ async def resolve_questions(box):
 
         except:
             new_box.append("Sorry, as an AI I cant answer this!!")
-        return new_box
+        if index < len(new_containers):
+            new_containers[index] = new_box
+        else:
+            # Handle the situation where the index is out of bounds
+            new_containers.append(new_box)
+        
 
 
 
@@ -132,3 +150,6 @@ def markdown_to_text(markdown_text):
         # Remove headers (assumes headers use # symbols)
         text = text.lstrip("#")
     return text.strip()  # Remove trailing newline
+
+
+
