@@ -26,25 +26,13 @@ def index(request, **kwargs:tuple):
         "boxes":boxes
     })
 
-#########-- htmx --##########
-def htmx_test(request):
-    url = "https://docs.google.com/forms/d/e/1FAIpQLSfIpvY6Cmzzkosn7am8x3_jRG7QKR0PsQjpUdeb7OeQxqlB-Q/viewform?usp=sf_link"
-    try:
-        question_and_answer = asyncio.run(get_questions_and_answer(url))
-        # return HttpResponse(question_and_answer)
-        return render(request, "solution/result.html",{
-            "boxes": question_and_answer,
-            })
-    except Exception as e:
-        print(f"Error found while making soup: {e}")
-        return index(request)
 
 ##########-- Rendering to index the AI output --##########
 def makesoup(request):
     if request.method == "POST":
         url = request.POST.get("url")
         try:
-            question_and_answer = asyncio.run(get_questions_and_answer(url))
+            question_and_answer =get_questions_and_answer(url)
             # return HttpResponse(question_and_answer)
             return render(request, "solution/result.html",{
                 "boxes": question_and_answer,
@@ -65,21 +53,21 @@ def improve_list(list :list)-> list:
 
 
 ##########-- Scraping the Web --##########
-async def get_questions_and_answer(url :str) ->list:
+def get_questions_and_answer(url :str) ->list:
     # url = "https://docs.google.com/forms/d/e/1FAIpQLSfIpvY6Cmzzkosn7am8x3_jRG7QKR0PsQjpUdeb7OeQxqlB-Q/viewform?usp=sf_link"
     response = requests.get(url)
     soup = cooking(response.content, "html.parser")
-    # extracted_data = "\n".join(p.get_text() for p in paragraphs)
-    # return extracted_data
+
     #Getting containers of question and it's options
     containers = soup.findAll(class_="geS5n")
+
     #Creating empty list of containers with questions and answers
-    new_containers=[None] *5
+    new_containers=[None]
     threads=[]
 
-    ## Timing asynchronous_jobs
+    ## Timing asynchronous_threads
     start_time = time.perf_counter()
-    # asynchronous_jobs = [resolve_questions(box) for box in containers]
+
     for index, box in enumerate(containers):
         thread = threading.Thread(target=resolve_questions, args=(box, new_containers, index))
         threads.append(thread)
